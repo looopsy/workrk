@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Запись на курсы</title>
+  </head>
+  <body>
+    <h1>Запись на курсы</h1>
+
+    <!-- Форма для создания новой записи -->
+    <h2>Новая запись</h2>
+    <form id="create-form">
+      <label for="name">ФИО:</label>
+      <input type="text" id="name" name="name" required>
+      <br>
+      <label for="phone">Телефон:</label>
+      <input type="tel" id="phone" name="phone" required>
+      <br>
+      <label for="course">Название курса:</label>
+      <input type="text" id="course" name="course" required>
+      <br>
+      <label for="comment">Комментарий:</label>
+      <textarea id="comment" name="comment"></textarea>
+      <br>
+      <button type="submit">Создать</button>
+    </form>
+
+    <!-- Таблица для отображения списка записей -->
+    <h2>Список записей</h2>
+    <table id="table">
+      <thead>
+        <tr>
+          <th>ФИО</th>
+          <th>Телефон</th>
+          <th>Название курса</th>
+          <th>Комментарий</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <!-- Форма для редактирования записи -->
+    <div id="edit-form" style="display: none;">
+      <h2>Редактирование записи</h2>
+      <form>
+        <label for="edit-name">ФИО:</label>
+        <input type="text" id="edit-name" name="name" required>
+        <br>
+        <label for="edit-phone">Телефон:</label>
+        <input type="tel" id="edit-phone" name="phone" required>
+        <br>
+        <label for="edit-course">Название курса:</label>
+        <input type="text" id="edit-course" name="course" required>
+        <br>
+        <label for="edit-comment">Комментарий:</label>
+        <textarea id="edit-comment" name="comment"></textarea>
+        <br>
+        <button type="submit">Сохранить</button>
+        <button type="button" id="cancel-button">Отмена</button>
+      </form>
+    </div>
+
+    <!-- Скрипт для работы с данными через API -->
+    <script>
+      // Функция для отправки запросов к API
+      async function sendRequest(method, url, data) {
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        return await response.json();
+      }
+
+      // Функция для создания новой записи
+      async function createRecord(event) {
+        event.preventDefault();
+        const form = document.getElementById('create-form');
+const name = form.elements['name'].value;
+const phone = form.elements['phone'].value;
+const course = form.elements['course'].value;
+const comment = form.elements['comment'].value;
+const data = { name, phone, course, comment };
+const response = await sendRequest('POST', '/api/records', data);
+addRecordToTable(response);
+form.reset();
+} 
+  // Функция для отображения списка записей
+  async function showRecords() {
+    const response = await sendRequest('GET', '/api/records');
+    const table = document.getElementById('table');
+    const tbody = table.getElementsByTagName('tbody')[0];
+    tbody.innerHTML = '';
+    response.forEach(record => addRecordToTable(record, tbody));
+  }
+
+  // Функция для добавления записи в таблицу
+  function addRecordToTable(record, tbody) {
+    if (!tbody) tbody = document.getElementById('table').getElementsByTagName('tbody')[0];
+    const row = tbody.insertRow(-1);
+    row.insertCell(-1).textContent = record.name;
+    row.insertCell(-1).textContent = record.phone;
+    row.insertCell(-1).textContent = record.course;
+    row.insertCell(-1).textContent = record.comment;
+    const editButton = document.createElement('button');
+    editButton.textContent = 'Редактировать';
+    editButton.addEventListener('click', () => showEditForm(record));
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'Удалить';
+    deleteButton.addEventListener('click', () => deleteRecord(record));
+    const actionsCell = row.insertCell(-1);
+    actionsCell.appendChild(editButton);
+    actionsCell.appendChild(deleteButton);
+  }
+
+  // Функция для отображения формы редактирования записи
+  function showEditForm(record) {
+    const form = document.getElementById('edit-form').querySelector('form');
+    form.elements['name'].value = record.name;
+    form.elements['phone'].value = record.phone;
+    form.elements['course'].value = record.course;
+    form.elements['comment'].value = record.comment;
+    const saveButton = form.querySelector('button[type="submit"]');
+    saveButton.addEventListener('click', event => saveRecord(event, record.id));
+    const cancelButton = document.getElementById('cancel-button');
+    cancelButton.addEventListener('click', hideEditForm);
+    document.getElementById('edit-form').style.display = 'block';
+  }
+
+  // Функция для скрытия формы редактирования записи
+  function hideEditForm() {
+    const form = document.getElementById('edit-form').querySelector('form');
+    form.reset();
+    const saveButton = form.querySelector('button[type="submit"]');
+    saveButton.removeEventListener('click', saveRecord);
+    const cancelButton = document.getElementById('cancel-button');
+    cancelButton.removeEventListener('click', hideEditForm);
+    document.getElementById('edit-form').style.display = 'none';
+  }
+
+  // Функция для сохранения изменений записи
+  async function saveRecord(event, id) {
+    event.preventDefault();
+    const form = document.getElementById('edit-form').querySelector('form');
+    const name = form.elements['name'].value;
+    const phone = form.elements['phone'].value;
+    const course = form.elements['course'].value;
+    const comment = form.elements['comment'].value;
+    const data = { name, phone, course, comment };
+    await sendRequest('PUT', `/api/records/${id}`, data);
+    await showRecords();
+    hideEditForm();
+  }
+
+  // Функция для удаления записи
+  async function deleteRecord(record) {
+    if (confirm(`Вы действительно хотите удалить запись "${record.name}"?)) { await sendRequest('DELETE', /api/records/${record.id}`));
+await showRecords();
+}
+
+ // Функция для отправки запросов на сервер
+ async function sendRequest(method, url, data) {
+    const headers = { 'Content-Type': 'application/json' };
+    const options = { method, headers };
+    if (data) options.body = JSON.stringify(data);
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(response.statusText);
+    const json = await response.json();
+    return json;
+  }
+
+  // При загрузке страницы отображаем список записей
+  showRecords();
+
+</script>
+  </body>
+</html>
